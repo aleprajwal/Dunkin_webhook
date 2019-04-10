@@ -1,0 +1,13 @@
+runtime: python27
+api_version: 1
+threadsafe: yes
+service: dialogflow
+
+# [START handlers]
+handlers:
+- url: /.*
+  script: webhook.app
+#[END handlers]
+libraries:
+- name: ssl
+  version: latest
