@@ -50,3 +50,7 @@ class Cart(object):
             self.drinks_content.pop(key)
         else:
             self.bakery_content.pop(key)
+
+    def clean_cart(self):
+        self.drinks_content.clear()
+        self.bakery_content.clear()

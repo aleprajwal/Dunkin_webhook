@@ -18,7 +18,7 @@ def webhook():
     except AttributeError:
         return 'JSON Error'
 
-    ## action to adds drinks item in cart
+    # action to adds drinks item in cart
     if action == 'order.items.drinks':
         params = req.get('queryResult').get('parameters')
         try:
@@ -33,7 +33,7 @@ def webhook():
         except Exception as e:
             logging.error('500 Error  --> order.items.drinks intent', exc_info=True)
 
-    ## action to adds bakery item in cart
+    # action to adds bakery item in cart
     if action == 'order.items.bakery':
         params = req.get('queryResult').get('parameters')
         try:
@@ -47,7 +47,7 @@ def webhook():
         except Exception as e:
             logging.error('500 Error  --> order.items.bakery intent', exc_info=True)
 
-    ## action to shows ordered item list available in cart
+    # action to shows ordered item list available in cart
     if action == 'order.items.check':
         try:
             if not bag.show_items():
@@ -64,7 +64,7 @@ def webhook():
         except Exception as e:
             logging.error('500 Error --> order.product.check intent', exc_info=True)
 
-    ## action to remove selected item from cart
+    # action to remove selected item from cart
     if action == 'order.items.remove':
         params = req.get('queryResult').get('parameters')
         try:
@@ -87,6 +87,17 @@ def webhook():
             return r
         except Exception as e:
             logging.error('500 Error --> order.items.remove intent', exc_info=True)
+
+    # action to cancel order
+    if action == 'order.cancel':
+        try:
+            bag.clean_cart()
+            response = {'fulfillmentText':'Your order is cancelled.'}
+            res = json.dumps(response)
+            r = make_response(res)
+            return r
+        except:
+            logging.error('500 Error --> order.cancel intent', exc_info=True)
 
 
 # run app
