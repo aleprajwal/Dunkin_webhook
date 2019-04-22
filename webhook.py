@@ -107,7 +107,6 @@ def webhook():
                 size = v.size
                 qty = v.qty
                 cursor.execute("INSERT INTO OrderDrinks(name, size, qty) VALUES ('{}','{}', {})".format(name, size, qty))
-                # cursor.execute("INSERT INTO OrderDrinks(name, size, qty) VALUES ('Hot Chocolate','Large', 2)")
                 mysql.connection.commit()
             cursor.close()
             response = {'fulfillmentText':'Your order is placed. Have a Good day!'}
@@ -117,6 +116,16 @@ def webhook():
 
         except Exception:
             logging.error('500 Error --> order.checkout.custom intent', exc_info=True)
+
+    if action == 'order.cancel':
+        try:
+            bag.clean_cart()
+            response = {'fulfillmentText':'Your order is cancelled.'}
+            res = json.dumps(response)
+            r = make_response(res)
+            return r
+        except:
+            logging.error('500 Error --> order.cancel intent', exc_info=True)
 
 
 # run app
