@@ -1,4 +1,5 @@
 from flask import Flask, request, make_response
+from flask_mysqldb import MySQL
 import cart
 import logging
 import json
@@ -8,6 +9,15 @@ import os
 # initilize flask app
 app = Flask(__name__)
 
+# MySQL configuration
+app.config['MYSQL_HOST'] = 'localhost'
+app.config['MYSQL_USER'] = 'phpmyadmin'
+app.config['MYSQL_PASSWORD'] = 'P@ssw0rd'
+app.config['MYSQL_DB'] = 'DunkinDonuts'
+
+mysql = MySQL(app)
+
+## initilize cart
 bag = cart.Cart()
 
 @app.route('/', methods=['POST', 'GET'])
@@ -87,6 +97,26 @@ def webhook():
             return r
         except Exception as e:
             logging.error('500 Error --> order.items.remove intent', exc_info=True)
+
+    ## action to checkout
+    if action == 'order.checkout.custom':
+        try:
+            cursor = mysql.connection.cursor()
+            for _, v in bag.drinks_content.iteritems():
+                name = v.name
+                size = v.size
+                qty = v.qty
+                cursor.execute("INSERT INTO OrderDrinks(name, size, qty) VALUES ('{}','{}', {})".format(name, size, qty))
+                # cursor.execute("INSERT INTO OrderDrinks(name, size, qty) VALUES ('Hot Chocolate','Large', 2)")
+                mysql.connection.commit()
+            cursor.close()
+            response = {'fulfillmentText':'Your order is placed. Have a Good day!'}
+            res = json.dumps(response)
+            r = make_response(res)
+            return r
+
+        except Exception:
+            logging.error('500 Error --> order.checkout.custom intent', exc_info=True)
 
 
 # run app
