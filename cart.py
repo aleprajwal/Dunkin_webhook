@@ -14,7 +14,7 @@ class Bakery_Item(object):
 class Cart(object):
     def __init__(self):
         self.drinks_content = dict()  # store details of ordered drinks items
-        self.bakery_content = dict()  # store details of ordreed bakery items
+        self.bakery_content = dict()  # store details of ordered bakery items
 
     # update drinks order in cart
     def drinks_update(self, item):
