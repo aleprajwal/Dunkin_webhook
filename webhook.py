@@ -1,9 +1,13 @@
 from flask import Flask, request, make_response
+import requests
 import cart
 import logging
 import json
 import os
 
+host = 'api.worldweatheronline.com'
+wwoApiKey = '7ce567a627504e3c82951314192404'
+city = 'kathmandu'
 
 # initilize flask app
 app = Flask(__name__)
@@ -98,6 +102,13 @@ def webhook():
             return r
         except:
             logging.error('500 Error --> order.cancel intent', exc_info=True)
+
+
+def weather_info():
+    path = 'https://{}/premium/v1/weather.ashx?format=json&num_of_days=1&key={}&q={}'.format(host, wwoApiKey, city)
+    json_res = requests.get(path).json()
+    temp_C = json_res['data']['current_condition'][0]['temp_C']
+    return temp_C
 
 
 # run app

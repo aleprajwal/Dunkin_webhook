@@ -1,31 +1,21 @@
-from flask import Flask, request, make_response
-import logging
-import json
-import os
+import requests
 
-host = ''
+host = 'api.worldweatheronline.com'
 wwoApiKey = '7ce567a627504e3c82951314192404'
 city = 'kathmandu'
 
-app = Flask(__name__)
-
-@app.route('/', methods=['POST', 'GET'])
-def weather_api():
-    req = request.get_json(silent=True, force=True)
-    try:
-        action = req.get('queryResult').get('action')
-    except AttributeError:
-        return 'JSON Error'
-
-    if action == 'get.weatherInfo':
-        weather_info()
-
 
 def weather_info():
-    path = '{}/premium/v1/weather.ashx?format=json&num_of_days=1&key={}&q={}'.format(host, wwoApiKey, city)
+    path = 'https://{}/premium/v1/weather.ashx?format=json&num_of_days=1&key={}&q={}'.format(host, wwoApiKey, city)
+    json_res = requests.get(path).json()
+    temp_C = json_res['data']['current_condition'][0]['temp_C']
+    return temp_C
 
 
-# run app
+def weather_stat(temp_C):
+    if temp_C > 35:
+        response = 'sunny'
+
+
 if __name__ == '__main__':
-    port = int(os.getenv('PORT', 5000))
-    app.run(debug=True, port=port, host='0.0.0.0')
+    print weather_info()
