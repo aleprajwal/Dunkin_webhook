@@ -17,8 +17,13 @@ def weather_api():
     except AttributeError:
         return 'JSON Error'
 
+    if action == 'get.weatherInfo':
+        weather_info()
+
+
 def weather_info():
     path = '{}/premium/v1/weather.ashx?format=json&num_of_days=1&key={}&q={}'.format(host, wwoApiKey, city)
+
 
 # run app
 if __name__ == '__main__':
