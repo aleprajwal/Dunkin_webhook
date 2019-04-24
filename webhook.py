@@ -5,6 +5,8 @@ import logging
 import json
 import os
 
+from response import COOL_WEATHER, SUNNY_WEATHER
+
 host = 'api.worldweatheronline.com'
 wwoApiKey = '7ce567a627504e3c82951314192404'
 city = 'kathmandu'
@@ -21,6 +23,17 @@ def webhook():
         action = req.get('queryResult').get('action')
     except AttributeError:
         return 'JSON Error'
+
+    # action for welcome message
+    if action == 'welcome':
+        temp = weather_info()
+        if int(temp) >= 32:
+            response = {'fulfillmentText':SUNNY_WEATHER.format(temp=temp)}
+        else:
+            response = {'fulfillmentText':COOL_WEATHER.format(temp=temp)}
+        res = json.dumps(response, indent=4)
+        r = make_response(res)
+        return r
 
     # action to adds drinks item in cart
     if action == 'order.items.drinks':
@@ -104,6 +117,7 @@ def webhook():
             logging.error('500 Error --> order.cancel intent', exc_info=True)
 
 
+# parse current temperature of kathmandu city
 def weather_info():
     path = 'https://{}/premium/v1/weather.ashx?format=json&num_of_days=1&key={}&q={}'.format(host, wwoApiKey, city)
     json_res = requests.get(path).json()
