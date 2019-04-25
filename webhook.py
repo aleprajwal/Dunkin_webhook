@@ -1,9 +1,12 @@
 from flask import Flask, request, make_response
-from flask_mysqldb import MySQL
+import requests
 import cart
 import logging
 import json
 import os
+
+from response import COOL_WEATHER, SUNNY_WEATHER
+
 
 # initilize flask app
 app = Flask(__name__)
@@ -14,6 +17,13 @@ app.config['MYSQL_USER'] = 'phpmyadmin'
 app.config['MYSQL_PASSWORD'] = 'P@ssw0rd'
 app.config['MYSQL_DB'] = 'DunkinDonuts'
 
+# weather api configuration
+host = 'api.worldweatheronline.com'
+wwoApiKey = '7ce567a627504e3c82951314192404'
+city = 'kathmandu'
+
+# initilize flask app
+app = Flask(__name__)
 mysql = MySQL(app)
 
 # initilize cart
@@ -28,6 +38,17 @@ def webhook():
     except AttributeError:
         return 'JSON Error'
 
+    # action for welcome message
+    if action == 'welcome':
+        temp = weather_info()
+        if int(temp) >= 32:
+            response = {'fulfillmentText': SUNNY_WEATHER.format(temp=temp)}
+        else:
+            response = {'fulfillmentText': COOL_WEATHER.format(temp=temp)}
+        res = json.dumps(response, indent=4)
+        r = make_response(res)
+        return r
+
     # action to adds drinks item in cart
     if action == 'order.items.drinks':
         params = req.get('queryResult').get('parameters')
@@ -37,6 +58,9 @@ def webhook():
                 bag.drinks_update(item)
 
             response = {'fulfillmentText': 'Anything else?'}
+            _, bakery = bag.status()
+            if not bakery:  # check if bakery item is not ordered yet
+                response = {'fulfillmentText': 'You can make order for bakery items. What can I get for you?'}
             res = json.dumps(response, indent=4)
             r = make_response(res)
             return r
@@ -51,6 +75,9 @@ def webhook():
                 item = cart.Bakery_Item(b, int(n))
                 bag.bakery_update(item)
             response = {'fulfillmentText': 'Anything else?'}
+            drinks, _ = bag.status()
+            if not drinks:  # check if drinks item is not ordered yet
+                response = {'fulfillmentText': 'You can make order for drinks. What can I get for you?'}
             res = json.dumps(response, indent=4)
             r = make_response(res)
             return r
@@ -114,9 +141,28 @@ def webhook():
             res = json.dumps(response)
             r = make_response(res)
             return r
-
-        except Exception:
+        except:
             logging.error('500 Error --> order.checkout.custom intent', exc_info=True)
+
+          
+    # action to cancel order
+    if action == 'order.cancel':
+        try:
+            bag.clean_cart()
+            response = {'fulfillmentText': 'Your order is cancelled.'}
+            res = json.dumps(response)
+            r = make_response(res)
+            return r
+        except:
+            logging.error('500 Error --> order.cancel intent', exc_info=True)
+
+
+# parse current temperature of kathmandu city
+def weather_info():
+    path = 'https://{}/premium/v1/weather.ashx?format=json&num_of_days=1&key={}&q={}'.format(host, wwoApiKey, city)
+    json_res = requests.get(path).json()
+    temp_C = json_res['data']['current_condition'][0]['temp_C']
+    return temp_C
 
     # action to cancel order
     if action == 'order.cancel':
