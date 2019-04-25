@@ -7,13 +7,26 @@ import os
 
 from response import COOL_WEATHER, SUNNY_WEATHER
 
+
+# initilize flask app
+app = Flask(__name__)
+
+# MySQL configuration
+app.config['MYSQL_HOST'] = 'localhost'
+app.config['MYSQL_USER'] = 'phpmyadmin'
+app.config['MYSQL_PASSWORD'] = 'P@ssw0rd'
+app.config['MYSQL_DB'] = 'DunkinDonuts'
+
+# weather api configuration
 host = 'api.worldweatheronline.com'
 wwoApiKey = '7ce567a627504e3c82951314192404'
 city = 'kathmandu'
 
 # initilize flask app
 app = Flask(__name__)
+mysql = MySQL(app)
 
+# initilize cart
 bag = cart.Cart()
 
 
@@ -113,6 +126,25 @@ def webhook():
         except Exception as e:
             logging.error('500 Error --> order.items.remove intent', exc_info=True)
 
+    # action to checkout
+    if action == 'order.checkout.custom':
+        try:
+            cursor = mysql.connection.cursor()
+            for _, v in bag.drinks_content.iteritems():
+                name = v.name
+                size = v.size
+                qty = v.qty
+                cursor.execute("INSERT INTO OrderDrinks(name, size, qty) VALUES ('{}','{}', {})".format(name, size, qty))
+                mysql.connection.commit()
+            cursor.close()
+            response = {'fulfillmentText': 'Your order is placed. Have a Good day!'}
+            res = json.dumps(response)
+            r = make_response(res)
+            return r
+        except:
+            logging.error('500 Error --> order.checkout.custom intent', exc_info=True)
+
+          
     # action to cancel order
     if action == 'order.cancel':
         try:
@@ -131,6 +163,17 @@ def weather_info():
     json_res = requests.get(path).json()
     temp_C = json_res['data']['current_condition'][0]['temp_C']
     return temp_C
+
+    # action to cancel order
+    if action == 'order.cancel':
+        try:
+            bag.clean_cart()
+            response = {'fulfillmentText': 'Your order is cancelled.'}
+            res = json.dumps(response)
+            r = make_response(res)
+            return r
+        except:
+            logging.error('500 Error --> order.cancel intent', exc_info=True)
 
 
 # run app

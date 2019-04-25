@@ -19,8 +19,8 @@ class Cart(object):
     # update drinks order in cart
     def drinks_update(self, item):
         name = item.size + ' ' + item.name  # creating key(name) with size and name of item
-        if name not in self.drinks_content:  # check if ordered drink item is perviously added
-            self.drinks_content.update({name: item})  # adding drinks item in drinks_content dictonary with name as key
+        if name not in self.drinks_content:  # check if ordered drink item is previously added
+            self.drinks_content.update({name: item})  # adding drinks item in drinks_content dictionary with name as key
             return
         self.drinks_content.get(name).qty += item.qty  # if drinks is previously ordered, only increase its quantity
 
