@@ -1,11 +1,11 @@
 from flask import Flask, request, make_response
 from flask_mysqldb import MySQL
-import requests
 import cart
 import logging
 import json
 import os
 
+from weather_info import weather_info
 from response import COOL_WEATHER, SUNNY_WEATHER
 
 # initilize flask app
@@ -18,12 +18,6 @@ app.config['MYSQL_PASSWORD'] = 'P@ssw0rd'
 app.config['MYSQL_DB'] = 'DunkinDonuts'
 
 mysql = MySQL(app)
-
-# weather api configuration
-host = 'api.worldweatheronline.com'
-wwoApiKey = '7ce567a627504e3c82951314192404'
-city = 'kathmandu'
-
 
 # initilize cart
 bag = cart.Cart()
@@ -57,8 +51,7 @@ def webhook():
                 bag.drinks_update(item)
 
             response = {'fulfillmentText': 'Anything else?'}
-            _, bakery = bag.status()
-            if not bakery:  # check if bakery item is not ordered yet
+            if not bag.bakery_content:  # check if bakery item is not ordered yet
                 response = {'fulfillmentText': 'You can make order for bakery items. What can I get for you?'}
             res = json.dumps(response, indent=4)
             r = make_response(res)
@@ -74,8 +67,7 @@ def webhook():
                 item = cart.Bakery_Item(b, int(n))
                 bag.bakery_update(item)
             response = {'fulfillmentText': 'Anything else?'}
-            drinks, _ = bag.status()
-            if not drinks:  # check if drinks item is not ordered yet
+            if not bag.drinks_content:
                 response = {'fulfillmentText': 'You can make order for drinks. What can I get for you?'}
             res = json.dumps(response, indent=4)
             r = make_response(res)
@@ -133,7 +125,8 @@ def webhook():
                 name = v.name
                 size = v.size
                 qty = v.qty
-                cursor.execute("INSERT INTO OrderDrinks(name, size, qty) VALUES ('{}','{}', {})".format(name, size, qty))
+                cursor.execute(
+                    "INSERT INTO OrderDrinks(name, size, qty) VALUES ('{}','{}', {})".format(name, size, qty))
                 mysql.connection.commit()
             cursor.close()
             response = {'fulfillmentText': 'Your order is placed. Have a Good day!'}
@@ -153,14 +146,6 @@ def webhook():
             return r
         except:
             logging.error('500 Error --> order.cancel intent', exc_info=True)
-
-
-# parse current temperature of kathmandu city
-def weather_info():
-    path = 'https://{}/premium/v1/weather.ashx?format=json&num_of_days=1&key={}&q={}'.format(host, wwoApiKey, city)
-    json_res = requests.get(path).json()
-    temp_C = json_res['data']['current_condition'][0]['temp_C']
-    return temp_C
 
 
 # run app
