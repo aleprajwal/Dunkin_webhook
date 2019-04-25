@@ -16,6 +16,7 @@ app = Flask(__name__)
 
 bag = cart.Cart()
 
+
 @app.route('/', methods=['POST', 'GET'])
 def webhook():
     req = request.get_json(silent=True, force=True)
@@ -28,9 +29,9 @@ def webhook():
     if action == 'welcome':
         temp = weather_info()
         if int(temp) >= 32:
-            response = {'fulfillmentText':SUNNY_WEATHER.format(temp=temp)}
+            response = {'fulfillmentText': SUNNY_WEATHER.format(temp=temp)}
         else:
-            response = {'fulfillmentText':COOL_WEATHER.format(temp=temp)}
+            response = {'fulfillmentText': COOL_WEATHER.format(temp=temp)}
         res = json.dumps(response, indent=4)
         r = make_response(res)
         return r
@@ -39,11 +40,14 @@ def webhook():
     if action == 'order.items.drinks':
         params = req.get('queryResult').get('parameters')
         try:
-            for a,s,d in zip(params['number'],params['size'],params['drink']):
-                item = cart.Drinks_Item(d,s,int(a))
+            for a, s, d in zip(params['number'], params['size'], params['drink']):
+                item = cart.Drinks_Item(d, s, int(a))
                 bag.drinks_update(item)
 
-            response = {'fulfillmentText':'Anything else?'}
+            response = {'fulfillmentText': 'Anything else?'}
+            _, bakery = bag.status()
+            if not bakery:  # check if bakery item is not ordered yet
+                response = {'fulfillmentText': 'You can make order for bakery items. What can I get for you?'}
             res = json.dumps(response, indent=4)
             r = make_response(res)
             return r
@@ -54,10 +58,13 @@ def webhook():
     if action == 'order.items.bakery':
         params = req.get('queryResult').get('parameters')
         try:
-            for n, b in zip(params['number'],params['bakery']):
+            for n, b in zip(params['number'], params['bakery']):
                 item = cart.Bakery_Item(b, int(n))
                 bag.bakery_update(item)
-            response = {'fulfillmentText':'Anything else?'}
+            response = {'fulfillmentText': 'Anything else?'}
+            drinks, _ = bag.status()
+            if not drinks:  # check if drinks item is not ordered yet
+                response = {'fulfillmentText': 'You can make order for drinks. What can I get for you?'}
             res = json.dumps(response, indent=4)
             r = make_response(res)
             return r
@@ -68,12 +75,12 @@ def webhook():
     if action == 'order.items.check':
         try:
             if not bag.show_items():
-                response = {'fulfillmentText':'Your order list is empty. You can order drinks and bakery items.'}
+                response = {'fulfillmentText': 'Your order list is empty. You can order drinks and bakery items.'}
                 res = json.dumps(response, indent=4)
                 r = make_response(res)
                 return r
             else:
-                response = {'fulfillmentText':'Order List:\n{}\nWould you want to checkout?'.
+                response = {'fulfillmentText': 'Order List:\n{}\nWould you want to checkout?'.
                     format(','.join(item for item in bag.show_items()))}
                 res = json.dumps(response, indent=4)
                 r = make_response(res)
@@ -92,12 +99,13 @@ def webhook():
                 bag.remove_item(remove_item)
                 if bag.show_items():
                     response = {'fulfillmentText': '{} removed from your order list!!\nItems in your order list:\n{}'.
-                                format(remove_item, ','.join(item for item in bag.show_items()))}
+                        format(remove_item, ','.join(item for item in bag.show_items()))}
                 else:
                     response = {'fulfillmentText': '{} removed from your order list!!\n Your order list is empty. '
-                                                   'You can make an order for drinks and bakery items.'.format(remove_item)}
+                                                   'You can make an order for drinks and bakery items.'.format(
+                        remove_item)}
             except Exception:
-                response = {'fulfillmentText':'{} not in your order list!!'.format(remove_item)}
+                response = {'fulfillmentText': '{} not in your order list!!'.format(remove_item)}
 
             res = json.dumps(response, indent=4)
             r = make_response(res)
@@ -109,7 +117,7 @@ def webhook():
     if action == 'order.cancel':
         try:
             bag.clean_cart()
-            response = {'fulfillmentText':'Your order is cancelled.'}
+            response = {'fulfillmentText': 'Your order is cancelled.'}
             res = json.dumps(response)
             r = make_response(res)
             return r
@@ -129,4 +137,3 @@ def weather_info():
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
     app.run(debug=True, port=port, host='0.0.0.0')
-
