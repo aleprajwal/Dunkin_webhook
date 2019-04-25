@@ -1,4 +1,5 @@
 from flask import Flask, request, make_response
+from flask_mysqldb import MySQL
 import requests
 import cart
 import logging
@@ -6,7 +7,6 @@ import json
 import os
 
 from response import COOL_WEATHER, SUNNY_WEATHER
-
 
 # initilize flask app
 app = Flask(__name__)
@@ -17,14 +17,13 @@ app.config['MYSQL_USER'] = 'phpmyadmin'
 app.config['MYSQL_PASSWORD'] = 'P@ssw0rd'
 app.config['MYSQL_DB'] = 'DunkinDonuts'
 
+mysql = MySQL(app)
+
 # weather api configuration
 host = 'api.worldweatheronline.com'
 wwoApiKey = '7ce567a627504e3c82951314192404'
 city = 'kathmandu'
 
-# initilize flask app
-app = Flask(__name__)
-mysql = MySQL(app)
 
 # initilize cart
 bag = cart.Cart()
@@ -144,7 +143,6 @@ def webhook():
         except:
             logging.error('500 Error --> order.checkout.custom intent', exc_info=True)
 
-          
     # action to cancel order
     if action == 'order.cancel':
         try:
@@ -163,17 +161,6 @@ def weather_info():
     json_res = requests.get(path).json()
     temp_C = json_res['data']['current_condition'][0]['temp_C']
     return temp_C
-
-    # action to cancel order
-    if action == 'order.cancel':
-        try:
-            bag.clean_cart()
-            response = {'fulfillmentText': 'Your order is cancelled.'}
-            res = json.dumps(response)
-            r = make_response(res)
-            return r
-        except:
-            logging.error('500 Error --> order.cancel intent', exc_info=True)
 
 
 # run app
