@@ -107,8 +107,7 @@ def webhook():
                 name = v.name
                 size = v.size
                 qty = v.qty
-                cursor.execute(
-                    "INSERT INTO OrderDrinks(name, size, qty) VALUES ('{}','{}', {})".format(name, size, qty))
+                cursor.execute("INSERT INTO OrderDrinks(name, size, qty) VALUES ('{}','{}', {})".format(name, size, qty))
                 mysql.connection.commit()
             cursor.close()
             response = {'fulfillmentText': 'Your order is placed. Have a Good day!'}
