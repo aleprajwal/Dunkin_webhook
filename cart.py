@@ -55,3 +55,7 @@ class Cart(object):
     def clean_cart(self):
         self.drinks_content.clear()
         self.bakery_content.clear()
+
+    # check if any drinks or bakery item is ordered
+    def status(self):
+        return bool(self.drinks_content), bool(self.bakery_content)
