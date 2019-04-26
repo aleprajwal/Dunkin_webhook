@@ -117,25 +117,6 @@ def webhook():
         except Exception as e:
             logging.error('500 Error --> order.items.remove intent', exc_info=True)
 
-    # action to checkout
-    if action == 'order.checkout.custom':
-        try:
-            cursor = mysql.connection.cursor()
-            for _, v in bag.drinks_content.iteritems():
-                name = v.name
-                size = v.size
-                qty = v.qty
-                cursor.execute(
-                    "INSERT INTO OrderDrinks(name, size, qty) VALUES ('{}','{}', {})".format(name, size, qty))
-                mysql.connection.commit()
-            cursor.close()
-            response = {'fulfillmentText': 'Your order is placed. Have a Good day!'}
-            res = json.dumps(response)
-            r = make_response(res)
-            return r
-        except:
-            logging.error('500 Error --> order.checkout.custom intent', exc_info=True)
-
     # action to cancel order
     if action == 'order.cancel':
         try:
@@ -146,6 +127,32 @@ def webhook():
             return r
         except:
             logging.error('500 Error --> order.cancel intent', exc_info=True)
+
+
+'''
+    # action to checkout and insert order into database
+    if action == 'order.checkout.custom':
+        try:
+            cursor = mysql.connection.cursor()
+            for _, v in bag.drinks_content.iteritems():
+                name = v.name
+                size = v.size
+                qty = v.qty
+                cursor.execute("INSERT INTO OrderDrinks(name, size, qty) VALUES ('{}','{}', {})".format(name, size, qty))
+                mysql.connection.commit()
+            for _, v in bag.bakery_content.iteritems():
+                name = v.name
+                qty = v.qty
+                cursor.execute("INSERT INTO OrderBakery(name, qty) VALUES ('{}', {})".format(name, qty))
+                mysql.connection.commit()
+            cursor.close()
+            response = {'fulfillmentText': 'Your order is placed. Have a Good day!'}
+            res = json.dumps(response)
+            r = make_response(res)
+            return r
+        except:
+            logging.error('500 Error --> order.checkout.custom intent', exc_info=True)
+'''
 
 
 # run app
