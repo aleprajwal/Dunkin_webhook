@@ -84,13 +84,37 @@ def webhook():
                 r = make_response(res)
                 return r
             else:
-                response = {'fulfillmentText': 'Order List:\n{}\nWould you want to checkout?'.
-                    format(','.join(item for item in bag.show_items()))}
+                # response = {'fulfillmentText': 'Order List:\n{}\nWould you want to checkout?'.
+                #     format(','.join(item for item in bag.show_items()))}
+                temp = weather_info()
+                if int(temp) >= 32: # concept -> recommend items which are not in order list w.r.t weather condition
+                    response = {'fulfillmentText': SUNNY_WEATHER.format(
+                        orderList=','.join(item for item in bag.show_items()),
+                        temp=temp)}
+                else:
+                    response = {'fulfillmentText': COOL_WEATHER.format(
+                        orderList=','.join(item for item in bag.show_items()),
+                        temp=temp)}
                 res = json.dumps(response, indent=4)
                 r = make_response(res)
                 return r
+
         except Exception as e:
             logging.error('500 Error --> order.product.check intent', exc_info=True)
+
+    if action == 'order.items.check.upsell':
+        params = req.get('queryResult').get('parameters')
+        try:
+            for a, s, d in zip(params['number'], params['size'], params['drink']):
+                item = cart.Drinks_Item(d, s, int(a))
+                bag.drinks_update(item)
+            response = {'fulfillmentText': 'Your Order List:\n{}\nWould you want to checkout or cancel order?'.format(
+                ','.join(item for item in bag.show_items()))}
+            res = json.dumps(response)
+            r = make_response(res)
+            return r
+        except Exception:
+            logging.error('500 Error --> order.items.check.upsell intent', exc_info=True)
 
     # action to remove selected item from cart
     if action == 'order.items.remove':
