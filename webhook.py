@@ -46,9 +46,13 @@ def webhook():
     if action == 'order.items.drinks':
         params = req.get('queryResult').get('parameters')
         try:
-            for a, s, d in zip(params['number'], params['size'], params['drink']):
-                item = cart.Drinks_Item(d, s, int(a))
+            if type(params['number']) is not list:
+                item = cart.Drinks_Item(params['drink'][0], params['size'][0], int(params['number']))
                 bag.drinks_update(item)
+            else:
+                for a, s, d in zip(params['number'], params['size'], params['drink']):
+                    item = cart.Drinks_Item(d, s, int(a))
+                    bag.drinks_update(item)
 
             response = {'fulfillmentText': 'Anything else?'}
             if not bag.bakery_content:  # check if bakery item is not ordered yet
@@ -63,9 +67,13 @@ def webhook():
     if action == 'order.items.bakery':
         params = req.get('queryResult').get('parameters')
         try:
-            for n, b in zip(params['number'], params['bakery']):
-                item = cart.Bakery_Item(b, int(n))
+            if type(params['number']) is not list:
+                item = cart.Bakery_Item(params['bakery'][0], int(params['number']))
                 bag.bakery_update(item)
+            else:
+                for n, b in zip(params['number'], params['bakery']):
+                    item = cart.Bakery_Item(b, int(n))
+                    bag.bakery_update(item)
             response = {'fulfillmentText': 'Anything else?'}
             if not bag.drinks_content:
                 response = {'fulfillmentText': 'You can make order for drinks. What can I get for you?'}
@@ -105,9 +113,13 @@ def webhook():
     if action == 'order.items.check.upsell':
         params = req.get('queryResult').get('parameters')
         try:
-            for a, s, d in zip(params['number'], params['size'], params['drink']):
-                item = cart.Drinks_Item(d, s, int(a))
+            if type(params['size']) is not list:
+                item = cart.Drinks_Item(params['drink'][0], params['size'][0], int(params['number']))
                 bag.drinks_update(item)
+            else:
+                for a, s, d in zip(params['number'], params['size'], params['drink']):
+                    item = cart.Drinks_Item(d, s, int(a))
+                    bag.drinks_update(item)
             response = {'fulfillmentText': 'Your Order List:\n{}\nWould you want to checkout or cancel order?'.format(
                 ','.join(item for item in bag.show_items()))}
             res = json.dumps(response)
