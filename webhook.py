@@ -113,7 +113,7 @@ def webhook():
     if action == 'order.items.check.upsell':
         params = req.get('queryResult').get('parameters')
         try:
-            if type(params['size']) is not list:
+            if type(params['number']) is not list:
                 item = cart.Drinks_Item(params['drink'][0], params['size'][0], int(params['number']))
                 bag.drinks_update(item)
             else:
