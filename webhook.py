@@ -7,7 +7,7 @@ import random
 import os
 
 from weather_info import weather_info
-from response import DRINKS_COOL_WEATHER, DRINKS_SUNNY_WEATHER, BAKERY_RECOMMEND
+from response import ASK_DRINKS, BAKERY_RECOMMEND, DRINKS_COOL_WEATHER, DRINKS_SUNNY_WEATHER, CHECKOUT
 
 # initilize flask app
 app = Flask(__name__)
@@ -37,7 +37,8 @@ def webhook():
         params = req.get('queryResult').get('parameters')
         try:
             add_drinks(params=params)
-            response = {'fulfillmentText': 'Please enter your card number to checkout.'}
+            choose_response = random.choice(CHECKOUT)
+            response = {'fulfillmentText': choose_response}
             # if not bag.bakery_content:  # check if bakery item is not ordered yet
             #     # recommend bakery items
             #     response = {'fulfillmentText': BAKERY_RECOMMEND}
@@ -52,7 +53,8 @@ def webhook():
         params = req.get('queryResult').get('parameters')
         try:
             add_bakery(params=params)
-            response = {'fulfillmentText': 'Would you like to order drinks item?'}
+            choose_response = random.choice(ASK_DRINKS)
+            response = {'fulfillmentText': choose_response}
             # if not bag.drinks_content:
             #     response = {'fulfillmentText': 'You can make order for drinks. What can I get for you?'}
             res = json.dumps(response, indent=4)
@@ -71,19 +73,22 @@ def webhook():
                 return r
             else:
                 response = {'fulfillmentText': 'Order List: {}'.format(','.join(item for item in bag.show_items()))}
-                # temp = weather_info()
-                # if int(temp) >= 32: # concept -> recommend items which are not in order list w.r.t weather condition
-                #     choose_response = random.choice(DRINKS_SUNNY_WEATHER)
-                #     response = {'fulfillmentText': choose_response.format(temp=temp)}
-                # else:
-                #     choose_response = random.choice(DRINKS_COOL_WEATHER)
-                #     response = {'fulfillmentText': choose_response.format(temp=temp)}
                 res = json.dumps(response, indent=4)
                 r = make_response(res)
                 return r
 
-        except Exception as e:
+        except Exception:
             logging.error('500 Error --> order.items.check intent', exc_info=True)
+
+    if action == 'upsell.bakery.recommend':
+        try:
+            choose_response = random.choice(BAKERY_RECOMMEND)
+            response = {'fulfillmentText': choose_response}
+            res = json.dumps(response, indent=4)
+            r = make_response(res)
+            return r
+        except Exception:
+            logging.error('500 Error --> ActionName : upsell.bakery.recommend', exc_info=True)
 
     if action == 'upsell.drinks.recommend':
         try:
@@ -98,7 +103,7 @@ def webhook():
             r = make_response(res)
             return r
         except Exception:
-            logging.error('500 Error --> order.items.check.upsell.drinks.recommend intent', exc_info=True)
+            logging.error('500 Error --> Action Name : upsell.drinks.recommend', exc_info=True)
 
     # action to remove selected item from cart
     if action == 'order.items.remove':
