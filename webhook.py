@@ -1,18 +1,17 @@
 from flask import Flask, request, make_response
-# from flask_mysqldb import MySQL
+from flask_mysqldb import MySQL
 import cart
 import logging
 import json
+import random
 import os
 
 from weather_info import weather_info
-from response import COOL_WEATHER, SUNNY_WEATHER
-
+from response import ASK_DRINKS, BAKERY_RECOMMEND, DRINKS_COOL_WEATHER, DRINKS_SUNNY_WEATHER, CHECKOUT
 
 # initilize flask app
 app = Flask(__name__)
 
-"""
 # MySQL configuration
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'phpmyadmin'
@@ -20,7 +19,6 @@ app.config['MYSQL_PASSWORD'] = 'P@ssw0rd'
 app.config['MYSQL_DB'] = 'DunkinDonuts'
 
 mysql = MySQL(app)
-"""
 
 # initilize cart
 bag = cart.Cart()
@@ -34,32 +32,16 @@ def webhook():
     except AttributeError:
         return 'JSON Error'
 
-    # action for welcome message
-    if action == 'welcome':
-        temp = weather_info()
-        if int(temp) >= 32:
-            response = {'fulfillmentText': SUNNY_WEATHER.format(temp=temp)}
-        else:
-            response = {'fulfillmentText': COOL_WEATHER.format(temp=temp)}
-        res = json.dumps(response, indent=4)
-        r = make_response(res)
-        return r
-
     # action to adds drinks item in cart
     if action == 'order.items.drinks':
         params = req.get('queryResult').get('parameters')
         try:
-            if type(params['number']) is not list:
-                item = cart.Drinks_Item(params['drink'][0], params['size'][0], int(params['number']))
-                bag.drinks_update(item)
-            else:
-                for a, s, d in zip(params['number'], params['size'], params['drink']):
-                    item = cart.Drinks_Item(d, s, int(a))
-                    bag.drinks_update(item)
-
-            response = {'fulfillmentText': 'Anything else?'}
-            if not bag.bakery_content:  # check if bakery item is not ordered yet
-                response = {'fulfillmentText': 'You can make order for bakery items. What can I get for you?'}
+            add_drinks(params=params)
+            choose_response = random.choice(CHECKOUT)
+            response = {'fulfillmentText': choose_response}
+            # if not bag.bakery_content:  # check if bakery item is not ordered yet
+            #     # recommend bakery items
+            #     response = {'fulfillmentText': BAKERY_RECOMMEND}
             res = json.dumps(response, indent=4)
             r = make_response(res)
             return r
@@ -70,16 +52,11 @@ def webhook():
     if action == 'order.items.bakery':
         params = req.get('queryResult').get('parameters')
         try:
-            if type(params['number']) is not list:
-                item = cart.Bakery_Item(params['bakery'][0], int(params['number']))
-                bag.bakery_update(item)
-            else:
-                for n, b in zip(params['number'], params['bakery']):
-                    item = cart.Bakery_Item(b, int(n))
-                    bag.bakery_update(item)
-            response = {'fulfillmentText': 'Anything else?'}
-            if not bag.drinks_content:
-                response = {'fulfillmentText': 'You can make order for drinks. What can I get for you?'}
+            add_bakery(params=params)
+            choose_response = random.choice(ASK_DRINKS)
+            response = {'fulfillmentText': choose_response}
+            # if not bag.drinks_content:
+            #     response = {'fulfillmentText': 'You can make order for drinks. What can I get for you?'}
             res = json.dumps(response, indent=4)
             r = make_response(res)
             return r
@@ -95,41 +72,38 @@ def webhook():
                 r = make_response(res)
                 return r
             else:
-                # response = {'fulfillmentText': 'Order List:\n{}\nWould you want to checkout?'.
-                #     format(','.join(item for item in bag.show_items()))}
-                temp = weather_info()
-                if int(temp) >= 32: # concept -> recommend items which are not in order list w.r.t weather condition
-                    response = {'fulfillmentText': SUNNY_WEATHER.format(
-                        orderList=','.join(item for item in bag.show_items()),
-                        temp=temp)}
-                else:
-                    response = {'fulfillmentText': COOL_WEATHER.format(
-                        orderList=','.join(item for item in bag.show_items()),
-                        temp=temp)}
+                response = {'fulfillmentText': 'Order List: {}'.format(','.join(item for item in bag.show_items()))}
                 res = json.dumps(response, indent=4)
                 r = make_response(res)
                 return r
 
-        except Exception as e:
-            logging.error('500 Error --> order.product.check intent', exc_info=True)
+        except Exception:
+            logging.error('500 Error --> order.items.check intent', exc_info=True)
 
-    if action == 'order.items.check.upsell':
-        params = req.get('queryResult').get('parameters')
+    if action == 'upsell.bakery.recommend':
         try:
-            if type(params['number']) is not list:
-                item = cart.Drinks_Item(params['drink'][0], params['size'][0], int(params['number']))
-                bag.drinks_update(item)
-            else:
-                for a, s, d in zip(params['number'], params['size'], params['drink']):
-                    item = cart.Drinks_Item(d, s, int(a))
-                    bag.drinks_update(item)
-            response = {'fulfillmentText': 'Your Order List:\n{}\nWould you want to checkout or cancel order?'.format(
-                ','.join(item for item in bag.show_items()))}
-            res = json.dumps(response)
+            choose_response = random.choice(BAKERY_RECOMMEND)
+            response = {'fulfillmentText': choose_response}
+            res = json.dumps(response, indent=4)
             r = make_response(res)
             return r
         except Exception:
-            logging.error('500 Error --> order.items.check.upsell intent', exc_info=True)
+            logging.error('500 Error --> ActionName : upsell.bakery.recommend', exc_info=True)
+
+    if action == 'upsell.drinks.recommend':
+        try:
+            temp = weather_info()
+            if int(temp) >= 32: # concept -> recommend items which are not in order list w.r.t weather condition
+                choose_response = random.choice(DRINKS_SUNNY_WEATHER)
+                response = {'fulfillmentText': choose_response.format(temp=temp)}
+            else:
+                choose_response = random.choice(DRINKS_COOL_WEATHER)
+                response = {'fulfillmentText': choose_response.format(temp=temp)}
+            res = json.dumps(response, indent=4)
+            r = make_response(res)
+            return r
+        except Exception:
+            logging.error('500 Error --> Action Name : upsell.drinks.recommend', exc_info=True)
 
     # action to remove selected item from cart
     if action == 'order.items.remove':
@@ -192,6 +166,26 @@ def webhook():
         except:
             logging.error('500 Error --> order.checkout.custom intent', exc_info=True)
 '''
+
+
+def add_drinks(params):
+    if type(params['number']) is not list:
+        item = cart.Drinks_Item(params['drink'][0], params['size'][0], int(params['number']))
+        bag.drinks_update(item)
+    else:
+        for a, s, d in zip(params['number'], params['size'], params['drink']):
+            item = cart.Drinks_Item(d, s, int(a))
+            bag.drinks_update(item)
+
+
+def add_bakery(params):
+    if type(params['number']) is not list:
+        item = cart.Bakery_Item(params['bakery'][0], int(params['number']))
+        bag.bakery_update(item)
+    else:
+        for n, b in zip(params['number'], params['bakery']):
+            item = cart.Bakery_Item(b, int(n))
+            bag.bakery_update(item)
 
 
 # run app
